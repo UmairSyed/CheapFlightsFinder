@@ -1,0 +1,360 @@
+<%@ Master Language="C#" MasterPageFile="~/masterpages/Master.master" AutoEventWireup="true" %>
+
+<asp:content ContentPlaceHolderId="MetaContent" runat="server">
+<umbraco:Macro runat="server" language="cshtml">
+	<title>@Model.pageTitle</title>
+	<meta name="title" content="@Model.pageTitle" />
+	<meta name="description" content="@Model.metaDescription" />
+	<meta name="keywords" content="@Model.metaKeywords" />
+	<meta name="author" content="@Model.metaAuthor" />
+
+	<meta name="fromCity" content=""> 
+	<meta name="toCity" content=""> 
+	<meta name="fromCountry" content=""> 
+	<meta name="toCountry" content=""> 
+	<meta name="gender" content=""> 
+	<meta name="ageGroup" content=""> 
+	<meta name="travellerType" content=""> 
+	<meta name="travelClass" content="">
+</umbraco:Macro>
+</asp:content>
+
+<asp:content ContentPlaceHolderId="BodyContent" runat="server">
+	
+	<section class="home-maincontent clearfix">
+		<div class="home-flightsearch">
+			<umbraco:Macro runat="server" language="cshtml">
+			<iframe id="content-frame-flights" src="@Model.flightSearchURL" style="width:560px;height:495px;overflow:hidden;border:none;float:left;" scrolling="no" marginheight="0" marginwidth="0" frameborder="0"></iframe>
+			</umbraco:Macro>
+			<div class="inputs-box bg-darkgrey clearfix">
+				<form id="frmOnlineAnswers" action="http://www.aqtual.com.au/FA/hybrid/answer.asp" style="margin: 0px; margin-top: 10px">
+				<input type="hidden" name="Site" value="1" id="Hidden1" />
+				<input type="hidden" name="PROJECT" value="9424145" id="Hidden2" />
+				<label for="customer-query" class="white-majortitle">Ask us a Question</label>
+				<input type="text" name="Question" id="oa_question" maxlength="250" style="width:258px" />
+				<a href="javascript:void(0);" id="submitQ" class="btn btn-blue">Go</a>
+				</form>
+			</div>
+			<script type="text/javascript">
+			//<![CDATA[
+			jQuery(document).ready(function ($) {
+				//handle online answers box submission
+				$('#frmOnlineAnswers').submit(function () {
+					// set the popup window height
+					var pH = $(window).height() > 800 ? 740 : 600;
+					window.open('', 'answerWindow', 'toolbar=0,resizable=1,scrollbars=1,left=50,top=50,width=900,height=' + pH);
+					$(this).attr("target", "answerWindow");
+				});
+
+				$('#submitQ').click(function (e) {
+					$('#frmOnlineAnswers').submit();
+				});
+			});
+			//]]>
+			</script>
+            <div style="padding:20px 0 0 30px;">
+        	<umbraco:Macro runat="server" language="cshtml">
+	            @Html.Raw(Model.pageContentTop)
+        	</umbraco:Macro>
+	        </div>
+		</div>
+		
+		<!-- <h1 class="darkgrey">Cheap Flights Finder <span class="stylisedtitle">to over 100 destinations</span></h1> -->
+		<h1><img src="/media/69452/cff-heading-globe.gif" alt="Cheap Flights Finder" /></h1>
+		
+		<div class="home-deals">
+
+			<!--
+			<div class="clearfix">
+				<a href="javascript:void(0);" id="deal-domestic" class="btn deal-type btn-deal btn-domestic"><span class="icn-dom"></span>AUSTRALIAN DESTINATIONS</a>
+				<a href="javascript:void(0);" id="deal-international" class="btn deal-type btn-deal btn-international"><span class="icn-int"></span>INTERNATIONAL DESTINATIONS</a>
+			</div>
+			
+			<h2 class="stylisedtitle">How do you want to fly?</h2>
+
+			<div class="btngrp-flighttype clearfix">
+				<a href="javascript:void(0);" id="deal-economy" class="btn deal-class btn-deal">ECONOMY</a>
+				<a href="javascript:void(0);" id="deal-premium" class="btn deal-class btn-deal">PREMIUM ECONOMY</a>
+				<a href="javascript:void(0);" id="deal-business" class="btn deal-class btn-deal">BUSINESS</a>
+			</div>
+
+			<h2 class="stylisedtitle">Top Deals we're tracking this week</h2>
+			-->
+			
+			<div class="clearfix">
+				<p>Whether you know where you're heading or looking for travel ideas, the Cheap Flights Finder brings you the very best deals. Start searching now.</p>
+				<h2 class="stylisedtitle">I know where I am going!</h2>
+			</div>	
+
+			<umbraco:Macro runat="server" language="cshtml">
+			@using Zuji.DealFinder;
+			@using umbraco.MacroEngines;
+			@inherits umbraco.MacroEngines.DynamicNodeContext
+
+			@{
+				Settings settings = new Settings();
+				var dealsNodeId = System.Configuration.ConfigurationManager.AppSettings["zujiTopDealsNodeId"];
+				var dealsNode = @Model.NodeById(dealsNodeId);
+				var count = 0;
+
+				var topDeals = dealsNode.Children.Where("Visible");
+			}
+				
+			@{
+				var points = settings.DestinationPointsAll();
+			}
+
+			<div class="btngrp-destinations clearfix">
+				<select id="ddl-destinations" name="destination0" class="go-btn0 half-dk" tabindex="0">
+					<option value="">Select your destination</option>
+					@{
+						foreach(var item in points) {
+							<option value="/flights/@item.alias" class="deal-destination @(item.isInternational ? "deal-international" : "deal-domestic")">@item.name</option>
+						}
+					}
+				</select>
+				<a href="javascript:void(0);" id="go-btn0" class="btn btn-blue btn-finder">Go</a>
+			</div>	
+				
+			<div class="home-deals-gridcontainer clearfix">
+				@{
+					Search search = new Search();
+					foreach(var deal in @topDeals)
+					{
+						if(deal.dealImage != "") {
+							var result = search.CheapestFarePerFlight(deal.dealDepartureAirport, deal.dealDestinationAirport, settings.ClassByAlias(deal.dealClassType), settings.FlightTypeByAlias(null, string.Compare(deal.dealDestinationType, "international", true) == 0));
+							if (result != null && result.OutBoundDeals != null && result.OutBoundDeals.Count > 0) {
+								var dealImage = Library.MediaById(deal.dealImage);
+								var linkTarget = deal.dealLink.NewWindow ? "_blank" : "_self";
+								string departureName = deal.dealDepartureAirport;
+								var dep = settings.DeparturePointByCode(deal.dealDepartureAirport);
+								if (dep != null) {
+									departureName = dep.name;
+								}
+								string destinationName = deal.dealDestinationAirport;
+								var dest = settings.DestinationPointByCode(deal.dealDestinationAirport);
+								if (dest != null) {
+									destinationName = dest.name;
+								}
+								string className = "";
+								if (deal.setAsDefault) {
+									count++;
+									className += "deal-default ";
+								}
+								if (deal.dealDestinationType == "Domestic") {
+									className += "deal-domestic ";
+								}
+								if (deal.dealDestinationType == "International") {
+									className += "deal-international ";
+								}
+								if (deal.dealClassType == "Economy") {
+									className += "deal-economy ";
+								}
+								if (deal.dealClassType == "Premium") {
+									className += "deal-premium ";
+								}
+								if (deal.dealClassType == "Business") {
+									className += "deal-business ";
+								}
+								<div class="thumb scroll grid-item" style="@(deal.setAsDefault && count <= 9 ? "" : "display: none;")">
+									<div class="thumb-wrapper">
+										<div class="flip-front">
+											<a href="@deal.dealLink.Url" title="@deal.dealLink.Title" target="@linkTarget" class="deal-item @className.Trim()"><img src="@dealImage.umbracoFile" alt="@deal.dealLink.Title" class="home-deals-griditem" /></a>
+										</div>
+										<div class="thumb-detail flip-back">
+											<a href="@deal.dealLink.Url" title="@deal.dealLink.Title" target="@linkTarget" class="deal-item @className.Trim()">
+												<div class="dealDetails">
+													<p class="dealDestination">@destinationName</p>
+													<p class="dealFrom"><span class="dealFromLine">&nbsp;</span>@(deal.dealDestinationType == "Domestic" ? "one way from" : "return from")<span class="dealFromLine">&nbsp;</span></p>
+													<p class="dealPrice"><span class="dollarSign">$</span>@result.OutBoundDeals[0].PriceNoBags.ToString("C0").Replace("$", "") <span class="dealPP">p.p</span></p>
+													<p class="dealDeparture">ex @departureName</p>
+												</div>
+											</a>
+										</div>
+									</div>
+								</div>
+							}
+						}
+					}
+					<div class="largertext no-deals" style="padding:10px 0 50px 5px; @(count <= 0 ? "" : "display: none;")">No top deals available for display</div>
+				}
+			</div>
+			
+			<h2 class="stylisedtitle">OR -- Tell us where you want to go</h2>
+
+			</umbraco:Macro>
+		</div>
+	</section><!-- .home-maincontent -->
+
+	<div class="midsection-page clearfix">
+        <div class="ad-bottom-content">
+			<umbraco:Macro Alias="Banner" PropertyName="pageBannerAd1" runat="server" language="cshtml" />
+		</div>
+		<div class="ad-bottom-content">
+			<umbraco:Macro Alias="Banner" PropertyName="pageBannerAd2" runat="server" language="cshtml" />
+		</div>
+		<div>
+		<umbraco:Macro runat="server" language="cshtml">
+			@Model.pageContent
+		</umbraco:Macro>
+
+		<umbraco:Macro runat="server" language="cshtml">
+		@{
+            var contentElements = Model.Children.Where("Visible");
+            foreach(var content in contentElements)
+            {
+				if(@content.NodeTypeAlias == "DealsSlider") {
+
+					var topDeals = content.Children.Where("Visible");
+					int count = 0;
+		
+					<script type="text/javascript" src="/scripts/slider.js"></script>
+					
+					<a href="@content.titleURL.Url"><h1 class="darkgrey">@content.GetProperty("Title").Value</h1></a>
+					
+					<div id="specials-container" style="height:170px;width:auto; overflow:hidden;border:solid 1px #999999; background:#eeeeee;padding-left:16px;padding-top:24px;">
+						<a href="#slide" class="left-arrow">&lsaquo;</a>
+						
+						<div class="content">
+							<ul>
+							@foreach(var deal in topDeals)
+							{						
+								if(count == topDeals.Count()-1){
+									<li class="lastitem"><a href="@deal.dealurl.Url"><img src="@Library.MediaById(deal.dealimg).umbracoFile" width="80" height="80"/><p>@deal.GetProperty("dealtitle").Value</p></a></li>
+								}
+								else{
+									<li><a href="@deal.dealurl.Url"><img src="@Library.MediaById(deal.dealimg).umbracoFile" width="80" height="80"/><p>@deal.GetProperty("dealtitle").Value</p></a></li>
+								}
+								count++;
+							}
+							</ul>
+						</div>		
+
+						<a href="#slide" class="right-arrow">&rsaquo;</a>
+					</div>
+				}
+				
+			}
+		}
+		</umbraco:Macro>
+
+		</div>
+	</div><!-- .midsection-page -->
+
+</asp:content>
+
+<asp:content ContentPlaceHolderId="BannerContent" runat="server">
+	<aside class="ad-container-rhs">
+		<umbraco:Macro Alias="Banner" PropertyName="columnBannerAd1" runat="server" language="cshtml" />
+		<umbraco:Macro Alias="Banner" PropertyName="columnBannerAd2" runat="server" language="cshtml" />
+	</aside><!-- .ad-container-rhs -->
+</asp:content>    
+	 
+<asp:content ContentPlaceHolderId="ScriptContent" runat="server">
+	<script type="text/javascript" src="/scripts/jquery.half-dropkick.js"></script>
+	<script>
+		$(document).ready(function () {
+
+
+			
+			$(".half-dk").halfDropkick();
+
+			$(".deal-type").click(function () {
+				var isOn = $(this).hasClass('on');
+				$('.deal-type').removeClass('on');
+				//$('.deal-class').removeClass('on');
+				if (!isOn)
+					$(this).addClass('on');
+				toggleDeals();
+			});
+
+			$(".deal-class").click(function () {
+				var isOn = $(this).hasClass('on');
+				$('.deal-class').removeClass('on');
+				if (!isOn)
+					$(this).addClass('on');
+				toggleDeals();
+			});
+
+			$(".btn-finder").click(function () {
+				var buttonId = $(this).attr('id');
+				var selectValue = $('.' + buttonId).val();
+				if (selectValue != "") {
+					window.location.href = selectValue;
+				}
+			});
+
+			if ($('html').hasClass('csstransforms3d')) {
+				$('.thumb').removeClass('scroll').addClass('flip');
+
+				$('.thumb.flip').hover(
+					function () {
+						$(this).find('.thumb-detail').css("visibility", "visible");
+						$(this).find('.thumb-wrapper').addClass('flipIt');
+					},
+					function () {
+						$(this).find('.thumb-wrapper').removeClass('flipIt');
+					}
+				);
+
+			} else {
+				$('.thumb .thumb-detail, .thumb .thumb-detail span').css("opacity", 0).css("visibility", "visible");
+				$('.thumb').hover(
+					function () {
+						$(this).find('.thumb-detail, .thumb-detail span').stop().fadeTo(400, 1, 'easeOutCubic');
+					},
+					function () {
+
+						$(this).find('.thumb-detail, .thumb-detail span').stop().fadeTo(400, 0, 'easeOutCubic');
+					}
+				);
+
+			}
+		});
+
+		function toggleDeals() {
+
+			var activeTypeId = $('.deal-type.on').attr('id');
+			var activeClassId = $('.deal-class.on').attr('id');
+
+			$(".thumb.grid-item").hide();
+			var dealsToShow = $(".flip-front .deal-item");
+			if (activeTypeId) {
+				dealsToShow = dealsToShow.filter("." + activeTypeId);
+			}
+			if (activeClassId) {
+				dealsToShow = dealsToShow.filter("." + activeClassId);
+			}
+			if (!activeClassId && !activeTypeId)
+				dealsToShow = dealsToShow.filter(".deal-default");
+
+			dealsToShow.each(function (index) {
+				if (index < 9)
+					$(this).parents(".thumb.grid-item:first").show();
+				else
+					return false;
+			});
+
+			$(".no-deals").toggle(dealsToShow.length <= 0);
+
+			var ddl = $("#ddl-destinations");
+			var selectedDestination = ddl.val();
+			ddl.empty();
+
+			$.each(destinationList, function () {
+				if (!this.value || !activeTypeId || (activeTypeId == "deal-domestic" && !this.isInternational) || (activeTypeId == "deal-international" && this.isInternational))
+				   $("<option />").val(this.value).html(this.text).appendTo(ddl);
+			});
+			ddl.val(selectedDestination).trigger("change");
+		}
+
+		var destinationList = $("#ddl-destinations option").map(function () {
+			var $this = $(this);
+			return {
+				text: $this.html(),
+				value: $this.val(),
+				isInternational: $this.hasClass("deal-international")
+			};
+		});
+	</script>
+</asp:content>
