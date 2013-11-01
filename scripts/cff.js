@@ -1,6 +1,8 @@
 
 //adding a comment to test the branch
 
+//Umair's comment
+
 $(document).ready(function () {
 	
 	$(".half-dk").halfDropkick();
