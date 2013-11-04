@@ -1,0 +1,134 @@
+@inherits umbraco.MacroEngines.DynamicNodeContext
+@using Zuji.DealFinder;
+@using umbraco.MacroEngines;
+@inherits umbraco.MacroEngines.DynamicNodeContext	
+@{
+	Settings settings = new Settings();
+	var dealsNodeId = System.Configuration.ConfigurationManager.AppSettings["zujiTopDealsNodeId"];
+	var dealsNode = @Model.NodeById(dealsNodeId);
+	var count = 0;
+	var topDeals = dealsNode.Children.Where("Visible");
+	string mainImgSrc = @Parameter.mainImgURL;
+	string mainImgAlt = @Parameter.mainImgAlt;
+	string intro = @Parameter.intro;
+	string dropdownHeading = @Parameter.dropdownHeading;
+}
+
+@{
+	var points = settings.DestinationPointsAll();
+}
+@{
+		<!-- <h1 class="darkgrey">Cheap Flights Finder <span class="stylisedtitle">to over 100 destinations</span></h1> -->
+		<h1><img src="/media/69451/cff-heading-globe.gif" alt="Cheap Flights Finder" /></h1>
+		
+		<div class="home-deals">
+
+			<!--
+			<div class="clearfix">
+				<a href="javascript:void(0);" id="deal-domestic" class="btn deal-type btn-deal btn-domestic"><span class="icn-dom"></span>AUSTRALIAN DESTINATIONS</a>
+				<a href="javascript:void(0);" id="deal-international" class="btn deal-type btn-deal btn-international"><span class="icn-int"></span>INTERNATIONAL DESTINATIONS</a>
+			</div>
+			
+			<h2 class="stylisedtitle">How do you want to fly?</h2>
+
+			<div class="btngrp-flighttype clearfix">
+				<a href="javascript:void(0);" id="deal-economy" class="btn deal-class btn-deal">ECONOMY</a>
+				<a href="javascript:void(0);" id="deal-premium" class="btn deal-class btn-deal">PREMIUM ECONOMY</a>
+				<a href="javascript:void(0);" id="deal-business" class="btn deal-class btn-deal">BUSINESS</a>
+			</div>
+
+			<h2 class="stylisedtitle">Top Deals we're tracking this week</h2>
+			-->
+			
+			<div class="clearfix">
+				<p>Whether you know where you're heading or looking for travel ideas, the Cheap Flights Finder brings you the very best deals. Start searching now.</p>
+				<h2 class="stylisedtitle">I know where I am going!</h2>
+			</div>	
+
+			<umbraco:Macro runat="server" language="cshtml">
+
+			<div class="btngrp-destinations clearfix">
+				<select id="ddl-destinations" name="destination0" class="go-btn0 half-dk" tabindex="0">
+					<option value="">Select your destination</option>
+					@{
+						foreach(var item in points) {
+							<option value="/flights/@item.alias" class="deal-destination @(item.isInternational ? "deal-international" : "deal-domestic")">@item.name</option>
+						}
+					}
+				</select>
+				<a href="javascript:void(0);" id="go-btn0" class="btn btn-blue btn-finder">Go</a>
+			</div>	
+
+			<div class="clearfix">
+				<h2 class="stylisedtitle">Or... I'm looking for ideas?</h2>
+			</div>				
+				
+			<div class="home-deals-gridcontainer clearfix">
+				@{
+					Search search = new Search();
+					foreach(var deal in @topDeals)
+					{
+						if(deal.dealImage != "") {
+							var result = search.CheapestFarePerFlight(deal.dealDepartureAirport, deal.dealDestinationAirport, settings.ClassByAlias(deal.dealClassType), settings.FlightTypeByAlias(null, string.Compare(deal.dealDestinationType, "international", true) == 0));
+							if (result != null && result.OutBoundDeals != null && result.OutBoundDeals.Count > 0) {
+								var dealImage = Library.MediaById(deal.dealImage);
+								var linkTarget = deal.dealLink.NewWindow ? "_blank" : "_self";
+								string departureName = deal.dealDepartureAirport;
+								var dep = settings.DeparturePointByCode(deal.dealDepartureAirport);
+								if (dep != null) {
+									departureName = dep.name;
+								}
+								string destinationName = deal.dealDestinationAirport;
+								var dest = settings.DestinationPointByCode(deal.dealDestinationAirport);
+								if (dest != null) {
+									destinationName = dest.name;
+								}
+								string className = "";
+								if (deal.setAsDefault) {
+									count++;
+									className += "deal-default ";
+								}
+								if (deal.dealDestinationType == "Domestic") {
+									className += "deal-domestic ";
+								}
+								if (deal.dealDestinationType == "International") {
+									className += "deal-international ";
+								}
+								if (deal.dealClassType == "Economy") {
+									className += "deal-economy ";
+								}
+								if (deal.dealClassType == "Premium") {
+									className += "deal-premium ";
+								}
+								if (deal.dealClassType == "Business") {
+									className += "deal-business ";
+								}
+								<div class="thumb scroll grid-item" style="@(deal.setAsDefault && count <= 9 ? "" : "display: none;")">
+									<div class="thumb-wrapper">
+										<div class="flip-front">
+											<a href="@deal.dealLink.Url" title="@deal.dealLink.Title" target="@linkTarget" class="deal-item @className.Trim()"><img src="@dealImage.umbracoFile" alt="@deal.dealLink.Title" class="home-deals-griditem" /></a>
+										</div>
+										<div class="thumb-detail flip-back">
+											<a href="@deal.dealLink.Url" title="@deal.dealLink.Title" target="@linkTarget" class="deal-item @className.Trim()">
+												<div class="dealDetails">
+													<p class="dealDestination">@destinationName</p>
+													<p class="dealFrom"><span class="dealFromLine">&nbsp;</span>@(deal.dealDestinationType == "Domestic" ? "one way from" : "return from")<span class="dealFromLine">&nbsp;</span></p>
+													<p class="dealPrice"><span class="dollarSign">$</span>@result.OutBoundDeals[0].PriceNoBags.ToString("C0").Replace("$", "") <span class="dealPP">p.p</span></p>
+													<p class="dealDeparture">ex @departureName</p>
+												</div>
+											</a>
+										</div>
+									</div>
+								</div>
+							}
+						}
+					}
+					<div class="largertext no-deals" style="padding:10px 0 50px 5px; @(count <= 0 ? "" : "display: none;")">No top deals available for display</div>
+				}
+			</div>
+			
+			<!-- <h2 class="stylisedtitle">OR -- Tell us where you want to go</h2> -->
+
+			</umbraco:Macro>
+		</div>	
+}
